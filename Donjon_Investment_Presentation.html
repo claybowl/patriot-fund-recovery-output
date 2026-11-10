@@ -1,0 +1,1867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DONJON — Investment Memo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050505;
+            --bg-elevated: #0a0a0a;
+            --bg-card: #0f0f0f;
+            --fg: #fafafa;
+            --fg-muted: #888888;
+            --fg-subtle: #555555;
+            --accent: #e8d42a;
+            --accent-dim: #b8a000;
+            --accent-bg: rgba(232, 212, 42, 0.1);
+            --border: #1a1a1a;
+            --border-bright: #2a2a2a;
+            --green: #22c55e;
+            --green-dim: #16a34a;
+            --red: #ef4444;
+            --red-dim: #dc2626;
+            --blue: #3b82f6;
+            --orange: #f97316;
+        }
+        
+        * { box-sizing: border-box; }
+        
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            line-height: 1.6;
+            overflow-x: hidden;
+            font-size: 15px;
+        }
+        
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--fg-subtle); }
+        
+        /* Selection */
+        ::selection { background: var(--accent-bg); color: var(--bg); }
+        
+        /* HUD Top Bar */
+        .hud-bar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            height: 44px;
+            background: rgba(5, 5, 5, 0.95);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+        
+        .hud-left { display: flex; align-items: center; gap: 16px; }
+        .hud-right { display: flex; align-items: center; gap: 16px; }
+        
+        .hud-brand {
+            display: flex; align-items: center; gap: 8px;
+            font-weight: 700; letter-spacing: 0.1em; text-transform: lowercase;
+            color: var(--fg);
+        }
+        .hud-brand::before {
+            content: ''; width: 8px; height: 8px; border-radius: 2px;
+            background: var(--accent);
+        }
+        
+        .hud-nav { display: flex; gap: 4px; }
+        .hud-nav a {
+            padding: 4px 10px; font-size: 10px;
+            color: var(--fg-muted); text-decoration: none;
+            border: 1px solid transparent; border-radius: 4px;
+            transition: all 0.15s;
+        }
+        .hud-nav a:hover {
+            color: var(--fg); border-color: var(--border-bright);
+        }
+        .hud-nav a.active {
+            color: var(--accent); border-color: var(--accent);
+        }
+        
+        .hud-status {
+            display: flex; align-items: center; gap: 8px;
+            color: var(--green); font-size: 10px;
+        }
+        .hud-status::before {
+            content: ''; width: 6px; height: 6px; border-radius: 50%;
+            background: var(--green);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        
+        .hud-time {
+            color: var(--fg-subtle); font-variant-numeric: tabular-nums;
+        }
+        
+        /* Progress indicator */
+        .progress-track {
+            position: fixed; top: 44px; left: 0; right: 0; height: 2px;
+            background: var(--border); z-index: 99;
+        }
+        .progress-fill {
+            height: 100%; background: var(--accent);
+            transform-origin: left; transform: scaleX(0);
+            transform-origin: left center;
+        }
+        
+        /* Layout */
+        main {
+            padding-top: 60px;
+            min-height: 100vh;
+        }
+        
+        .section {
+            min-height: 100vh;
+            padding: 80px 40px 120px;
+            position: relative;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        @media (max-width: 768px) {
+            .section { padding: 60px 20px 100px; }
+            .hud-bar { padding: 0 12px; }
+            .hud-nav { display: none; }
+        }
+        
+        @media (min-width: 1440px) {
+            .section { padding-left: 80px; padding-right: 80px; }
+        }
+        
+        /* Section number */
+        .section-tag {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px; font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase; letter-spacing: 0.15em;
+            margin-bottom: 24px;
+        }
+        .section-tag::before {
+            content: ''; width: 24px; height: 1px; background: var(--accent);
+        }
+        
+        /* Typography */
+        h1 { font-size: clamp(40px, 6vw, 72px); font-weight: 700; line-height: 1.05; letter-spacing: -0.03em; }
+        h2 { font-size: clamp(28px, 4vw, 48px); font-weight: 600; line-height: 1.15; letter-spacing: -0.02em; }
+        h3 { font-size: clamp(18px, 2.5vw, 24px); font-weight: 600; line-height: 1.25; }
+        .lead { font-size: clamp(16px, 2vw, 22px); color: var(--fg-muted); font-weight: 400; line-height: 1.7; }
+        .body { font-size: 14px; line-height: 1.75; color: var(--fg); }
+        .caption { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-subtle); }
+        
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .card:hover { border-color: var(--border-bright); }
+        
+        .card-bordered {
+            border-left: 3px solid var(--accent);
+        }
+        
+        /* Buttons */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 12px 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.1em;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: transparent;
+            color: var(--fg);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-primary {
+            border-color: var(--accent); background: var(--accent); color: var(--bg);
+        }
+        .btn-primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); }
+        .btn-ghost:hover { border-color: var(--border-bright); color: var(--fg-muted); }
+        
+        /* Tables */
+        .data-table {
+            width: 100%; border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+        .data-table th {
+            text-align: left; padding: 10px 12px;
+            font-weight: 600; color: var(--fg-subtle);
+            border-bottom: 1px solid var(--border);
+            text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px;
+        }
+        .data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+        .data-table tr:last-child td { border-bottom: none; }
+        .data-table tr:hover td { background: var(--accent-bg); }
+        .data-table .rank { color: var(--fg-muted); }
+        .data-table .rank.top { color: var(--accent); font-weight: 700; }
+        .data-table .delta-up { color: var(--green); }
+        .data-table .delta-down { color: var(--red); }
+        
+        /* Metric display */
+        .metric { text-align: center; }
+        .metric-value { 
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(32px, 5vw, 56px); 
+            font-weight: 700; 
+            color: var(--accent); 
+            line-height: 1; 
+            font-variant-numeric: tabular-nums;
+        }
+        .metric-label { font-size: 11px; color: var(--fg-subtle); margin-top: 6px; text-transform: uppercase; letter-spacing: 0.1em; }
+        
+        /* Badges */
+        .badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 8px; border-radius: 3px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .badge-green { background: rgba(34, 197, 94, 0.12); color: var(--green); border: 1px solid rgba(34, 197, 94, 0.25); }
+        .badge-red { background: rgba(239, 68, 68, 0.12); color: var(--red); border: 1px solid rgba(239, 68, 68, 0.25); }
+        .badge-yellow { background: rgba(249, 115, 22, 0.12); color: var(--orange); border: 1px solid rgba(249, 115, 22, 0.25); }
+        .badge-blue { background: rgba(59, 130, 246, 0.12); color: var(--blue); border: 1px solid rgba(59, 130, 246, 0.25); }
+        .badge-gold { background: var(--accent-bg); color: var(--accent); border: 1px solid rgba(232, 212, 42, 0.3); }
+        .badge-gray { background: var(--bg-elevated); color: var(--fg-muted); border: 1px solid var(--border); }
+        
+        /* Code blocks */
+        .code-block {
+            background: #020202;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 20px;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.7;
+            color: #d4d4d4;
+            tab-size: 4;
+        }
+        
+        /* Live indicator */
+        .live-indicator {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px; color: var(--green);
+        }
+        .live-indicator::before {
+            content: ''; width: 5px; height: 5px; border-radius: 50%;
+            background: var(--green); animation: blink 1.5s infinite;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+        
+        /* Progress bar */
+        .progress-container {
+            position: fixed; top: 44px; left: 0; right: 0; height: 2px;
+            background: var(--border); z-index: 99;
+        }
+        .progress-bar {
+            height: 100%; background: var(--accent);
+            transform-origin: left; transform: scaleX(0);
+            transform-origin: left center;
+        }
+        
+        /* Grid utilities */
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        @media (max-width: 1024px) { .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 640px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+        
+        /* Wave cards */
+        .wave-card {
+            position: relative;
+            padding-left: 48px;
+            border-left: 2px solid var(--border);
+        }
+        .wave-card::before {
+            content: attr(data-wave);
+            position: absolute; left: -8px; top: 24px;
+            width: 14px; height: 14px; border-radius: 50%;
+            background: var(--accent); color: var(--bg);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px; font-weight: 700;
+        }
+        
+        /* Wave numbering */
+        .wave-header {
+            display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px;
+        }
+        .wave-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 48px; font-weight: 700; line-height: 1;
+            color: var(--fg-muted);
+        }
+        .wave-title { font-size: 20px; font-weight: 600; }
+        
+        /* Status lights */
+        .status-dot {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px; font-weight: 500;
+        }
+        .status-dot::before {
+            content: ''; width: 6px; height: 6px; border-radius: 50%;
+        }
+        .status-nominal::before { background: var(--green); box-shadow: 0 0 8px var(--green); }
+        .status-warning::before { background: var(--orange); box-shadow: 0 0 8px var(--orange); }
+        .status-critical::before { background: var(--red); box-shadow: 0 0 8px var(--red); }
+        
+        /* Quote blocks */
+        .quote-block {
+            border-left: 2px solid var(--accent);
+            padding-left: 20px;
+            margin: 24px 0;
+            font-style: italic;
+            color: var(--fg-muted);
+        }
+        .quote-block strong { font-style: normal; color: var(--fg); }
+        
+        /* Footnotes / fine print */
+        .fine-print { font-size: 11px; color: var(--fg-subtle); line-height: 1.6; }
+        
+        /* Nav dots */
+        .nav-dots {
+            position: fixed; right: 24px; top: 50%; transform: translateY(-50%);
+            z-index: 50; display: flex; flex-direction: column; gap: 10px;
+        }
+        @media (max-width: 1024px) { .nav-dots { display: none; } }
+        .nav-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--border); border: 2px solid transparent;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .nav-dot:hover { background: var(--fg-subtle); }
+        .nav-dot.active { background: var(--accent); border-color: var(--accent); transform: scale(1.25); }
+        
+        /* Charts container */
+        .chart-wrapper { position: relative; height: 300px; width: 100%; }
+        .chart-wrapper-sm { height: 220px; }
+        
+        /* Section footer */
+        .section-footer {
+            position: absolute; bottom: 24px; left: 40px; right: 40px;
+            display: flex; justify-content: space-between; align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px; color: var(--fg-subtle);
+            padding-top: 16px; border-top: 1px solid var(--border);
+        }
+        @media (max-width: 768px) {
+            .section-footer { left: 20px; right: 20px; bottom: 16px; }
+        }
+        
+        /* Special elements */
+        .highlight-gold { color: var(--accent); }
+        .highlight-green { color: var(--green); }
+        .highlight-red { color: var(--red); }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Warning boxes */
+        .warn-box {
+            background: rgba(249, 115, 22, 0.08);
+            border: 1px solid rgba(249, 115, 22, 0.25);
+            border-radius: 6px; padding: 16px 20px;
+            display: flex; align-items: flex-start; gap: 12px;
+        }
+        .warn-box .icon { flex-shrink: 0; margin-top: 2px; color: var(--orange); }
+        
+        /* Critical boxes */
+        .critical-box {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            border-radius: 6px; padding: 16px 20px;
+            border-left: 3px solid var(--red);
+        }
+        
+        /* Positive boxes */
+        .success-box {
+            background: rgba(34, 197, 94, 0.08);
+            border: 1px solid rgba(34, 197, 94, 0.25);
+            border-radius: 6px; padding: 16px 20px;
+            border-left: 3px solid var(--green);
+        }
+        
+        /* Hover lift */
+        .lift:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <!-- Progress Bar -->
+    <div class="progress-container" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+    
+    <!-- HUD Bar -->
+    <header class="hud-bar" role="banner">
+        <div class="hud-left">
+            <div class="hud-brand">donjon systems</div>
+            <nav class="hud-nav" id="hudNav" aria-label="Section navigation"></nav>
+        </div>
+        <div class="hud-right">
+            <div class="hud-status" id="hudStatus">SYSTEMS NOMINAL</div>
+            <div class="hud-time" id="hudTime">00:00:00 UTC</div>
+        </div>
+    </header>
+    
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+    
+    <main id="mainContent" role="main">
+        
+        <!-- 00 · COVER -->
+        <section class="section" id="section-00" data-section="00">
+            <div class="max-w-4xl mx-auto w-full text-center">
+                <div class="section-tag">00 · INVESTMENT MEMO</div>
+                <h1 class="mb-8">DONJON INTELLIGENCE SYSTEMS</h1>
+                <p class="lead max-w-2xl mx-auto mb-16">Agent-Native Venture Portfolio — Built on the Doer Platform</p>
+                
+                <div class="grid-3 mt-16 mb-16" role="list" aria-label="Key metrics">
+                    <article class="metric" role="listitem">
+                        <div class="metric-value">1</div>
+                        <div class="metric-label">BUILT VENTURE</div>
+                    </article>
+                    <article class="metric" role="listitem">
+                        <div class="metric-value">$0</div>
+                        <div class="metric-label">REVENUE TO DATE</div>
+                    </article>
+                    <article class="metric" role="listitem">
+                        <div class="metric-value">24</div>
+                        <div class="metric-label">SPECIALIZED GREMLINS</div>
+                    </article>
+                </ul>
+                
+                <div class="card card-bordered max-w-xl mx-auto mt-12" role="region" aria-label="Portfolio summary">
+                    <dl class="grid-4" style="font-family: 'JetBrains Mono', monospace;">
+                        <dt class="caption">MODELED ARR</dt>
+                        <dd class="metric-value" style="font-size: 28px;">$5.8M</dd>
+                        <dt class="caption">CAPITAL REQUIRED</dt>
+                        <dd class="metric-value" style="font-size: 28px;">$2.46M</dd>
+                        <dt class="caption">BLENDED MARGIN</dt>
+                        <dd class="metric-value" style="font-size: 28px;">75%</dd>
+                        <dt class="caption">SEED RAISE</dt>
+                        <dd class="metric-value" style="font-size: 28px;">$3M</dd>
+                    </dl>
+                </div>
+            </div>
+            
+            <footer class="section-footer">
+                <span>DONJON SYSTEMS · VIBE NATIVE V3</span>
+                <span class="live-indicator" id="footerStatus">SYSTEMS NOMINAL</span>
+                <span class="mono" id="footerTime">00:00:00 UTC</span>
+            </footer>
+        </section>
+        
+        <!-- 01 · EXECUTIVE SUMMARY -->
+        <section class="section" id="section-01" data-section="01">
+            <div class="max-w-5xl mx-auto w-full">
+                <span class="section-tag">01 · EXECUTIVE SUMMARY</span>
+                <h2 class="mb-6">WHAT WE HAVE BUILT</h2>
+                <p class="lead mb-16 max-w-2xl">A working multi-agent system with persistent memory. Not a diagram — running code. One complete venture. Zero revenue. The capital funds the proving.</p>
+                
+                <div class="grid-3 mb-12" role="list" aria-label="Core metrics">
+                    <article class="card lift" role="listitem">
+                        <div class="caption mb-4">BUILT VENTURE</div>
+                        <div class="metric-value highlight-gold">1</div>
+                        <p class="body text-center mt-4">Patriot Fund Recovery — eligibility engine, document gen, portal, partner dashboard. 6 weeks. ~4 founder hours.</p>
+                    </article>
+                    
+                    <article class="card lift" role="listitem">
+                        <div class="caption mb-4">REVENUE</div>
+                        <div class="metric-value highlight-red">$0</div>
+                        <p class="body text-center mt-4">Pre-revenue. 3 VSO pilot conversations (DAV, VFW, American Legion). $0 CAC. Honest: we haven't sold anything.</p>
+                    </article>
+                    
+                    <article class="card lift" role="listitem">
+                        <div class="caption mb-4">DELIVERY CREW</div>
+                        <div class="metric-value highlight-gold">24</div>
+                        <p class="body text-center mt-4">Specialized gremlins — research, code, design, legal, sales, deployment. Persistent memory via Letta. Zero idle cost.</p>
+                    </article>
+                </dl>
+                
+                <div class="card card-bordered mt-8 p-8" role="region" aria-label="Portfolio summary">
+                    <h3 class="caption mb-6">PORTFOLIO MODEL — EXPLICITLY A MODEL</h3>
+                    <div class="grid-4" role="list" aria-label="Portfolio projections">
+                        <div role="listitem">
+                            <dt class="caption">MODELED ARR (M18)</dt>
+                            <dd class="metric-value" style="font-size: 32px;">$5.8M</dd>
+                        </div>
+                        <div role="listitem">
+                            <dt class="caption">TOTAL CAPITAL</dt>
+                            <dd class="metric-value" style="font-size: 32px;">$2.46M</dd>
+                        </div>
+                        <div role="listitem">
+                            <dt class="caption">BLENDED MARGIN</dt>
+                            <dd class="metric-value" style="font-size: 32px;">75%</dd>
+                        </div>
+                        <div>
+                            <dt class="caption">SEED RAISE</dt>
+                            <dd class="metric-value" style="font-size: 32px;">$3M</dd>
+                        </div>
+                    </dl>
+                    <p class="fine-print mt-6 text-center" style="max-width: 600px; margin: 24px auto 0;">
+                        <strong>KEY VARIABLE:</strong> Market demand — which we have not yet tested. These are modeled projections based on Patriot build metrics, not commitments. Patriot Fund Recovery is pre-revenue.
+                    </p>
+                </div>
+            </div>
+            
+            <footer class="section-footer">
+                <span>DONJON SYSTEMS · VIBE NATIVE V3</span>
+                <span class="live-indicator" id="footerStatus1">SYSTEMS NOMINAL</span>
+                <span class="mono" id="footerTime1">00:00:00 UTC</span>
+            </footer>
+        </section>
+        
+        <!-- 02 · WHAT WE'VE BUILT -->
+        <section class="section" id="section-02" data-section="02">
+            <span class="section-tag">02 · SYSTEM ARCHITECTURE</span>
+            <h2 class="mb-6">WHAT WE'VE ACTUALLY BUILT</h2>
+            <p class="lead mb-16 max-w-2xl">A working multi-agent system with persistent memory. Not a diagram — running code. One complete venture. The capital funds the proving.</p>
+            
+            <div class="space-y-8" role="list" aria-label="System components">
+                <article class="card lift" role="listitem">
+                    <header class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-4">
+                            <div style="width: 44px; height: 44px; border-radius: 8px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); display: flex; align-items: center; justify-content: center;">
+                                <span class="mono" style="font-size: 16px; font-weight: 700; color: #3b82f6;">OS</span>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; font-size: 18px;">DOER PLATFORM</div>
+                                <p class="caption">ORCHESTRATION OS</p>
+                            </div>
+                        </div>
+                        <span class="status-dot status-nominal">NOMINAL</span>
+                    </header>
+                    <dl class="grid-2 body">
+                        <dt>ORCHESTRATION</dt><dd>Python daemon · 6-hour heartbeat · dispatch → poll → harvest → escalate</dd>
+                        <dt>MEMORY</dt><dd>Letta Cloud · core + archival + shared blocks · persistent across sessions</dd>
+                        <dt>TASK QUEUE</dt><dd>Paperclip (Doer API) · localhost:3100 · Kitchen Queue project</dd>
+                        <dt>PROTOCOLS</dt><dd>MCP-native · multi-adapter (Claude, Codex, Letta, OpenCode)</dd>
+                        <dt>GOVERNANCE</dt><dd>Org charts, budgets, escalation tiers as code</dd>
+                        <dt>OBSERVABILITY</dt><dd>Heartbeat JSONL → Grafana/Loki · Telegram alerts</dd>
+                    </dl>
+                </article>
+                
+                <article class="card lift" role="listitem">
+                    <header class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-4">
+                            <div style="width: 44px; height: 44px; border-radius: 8px; background: rgba(232,212,42,0.15); border: 1px solid rgba(232,212,42,0.3); display: flex; align-items: center; justify-content: center;">
+                                <span class="mono" style="font-size: 16px; font-weight: 700; color: var(--accent);">DD</span>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; font-size: 18px;">DONDOG</div>
+                                <p class="caption">ORCHESTRATOR</p>
+                            </div>
+                        </div>
+                        <span class="status-dot status-nominal">NOMINAL</span>
+                    </header>
+                    <p class="body mb-6">Reads soul.md for priorities · manages Paperclip queue · convenes Chef + Alfie councils · persistent memory via Letta</p>
+                    <div class="code-block">CLAY → DONDOG → CHEF → ALFIE → 24 GREMLINS
+TOWER KEEPER: Paperclip ↔ Letta bridge (shared blocks sync)</div>
+                </article>
+                
+                <article class="card lift" role="listitem">
+                    <header class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-4">
+                            <div style="width: 44px; height: 44px; border-radius: 8px; background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); display: flex; align-items: center; justify-content: center;">
+                                <span class="mono" style="font-size: 16px; font-weight: 700; color: var(--green);">CH</span>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; font-size: 18px;">THE CHEF</div>
+                                <p class="caption">TASK EXECUTOR</p>
+                            </div>
+                        </div>
+                        <span class="status-dot status-nominal">NOMINAL</span>
+                    </header>
+                    <p class="body mb-6">Only agent that breaks work into Paperclip issues. Receives priorities from DonDog. Specs → issues with acceptance criteria. Serves to Alfie.</p>
+                    <div class="code-block">DONDOG → CHEF (specs) → ALFIE (dispatch) → GREMLINS (execute)
+BLOCK_MENU written on every heartbeat → served to Alfie via /dispatch</div>
+                </article>
+                
+                <article class="card lift" role="listitem">
+                    <header class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-4">
+                            <div style="width: 44px; height: 44px; border-radius: 8px; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); display: flex; align-items: center; justify-content: center;">
+                                <span class="mono" style="font-size: 16px; font-weight: 700; color: #a855f7;">AL</span>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; font-size: 18px;">ALFIE</div>
+                                <p class="caption">GREMLIN COMMANDER</p>
+                            </div>
+                        </div>
+                        <span class="status-dot status-nominal">NOMINAL</span>
+                    </header>
+                    <p class="body mb-6">Dispatches 24 specialized gremlins · manages WIP limits & quiet hours · tiered escalation · zero cost until assigned</p>
+                    <div class="code-block">CHEFF → ALFIE → GREMLINS → ALFIE → COUNCIL
+/dispatch <gremlin> <task> | WIP limits | quiet hours (23:00-07:00)</div>
+                </article>
+                
+                <article class="card lift" role="listitem">
+                    <header class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-4">
+                            <div style="width: 44px; height: 44px; border-radius: 8px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); display: flex; align-items: center; justify-content: center;">
+                                <span class="mono" style="font-size: 16px; font-weight: 700; color: var(--red);">TK</span>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; font-size: 18px;">TOWER KEEPER</div>
+                                <p class="caption">PAPERCLIP ↔ LETTA BRIDGE</p>
+                            </div>
+                        </div>
+                        <span class="status-dot status-nominal">NOMINAL</span>
+                    </header>
+                    <p class="body mb-6">Keeps shared blocks in sync with Paperclip automatically. You read blocks, don't touch Paperclip directly.</p>
+                    <div class="code-block" style="font-size: 10px;">
+SHARED BLOCKS (maintained by Tower Keeper):
+├── paperclip_task_queue    ← Live Kitchen Queue issues
+├── dispatch_state          ← What's sent, to whom, when
+├── kitchen_status          ← Queue health metrics
+├── escalation_board        ← Blocked tasks, tier alerts
+└── venture_context         ← Per-venture specs, decisions</div>
+                </article>
+                
+                <article class="card lift" role="listitem">
+                    <header class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-4">
+                            <div style="width: 44px; height: 44px; border-radius: 8px; background: rgba(232,212,42,0.15); border: 1px solid rgba(232,212,42,0.3); display: flex; align-items: center; justify-content: center;">
+                                <span class="mono" style="font-size: 16px; font-weight: 700; color: var(--accent);">24</span>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; font-size: 18px;">GREMLIN ARMY</div>
+                                <p class="caption">24 SPECIALISTS · HEARTBEAT-BASED</p>
+                            </div>
+                        </div>
+                        <span class="status-dot status-nominal">NOMINAL</span>
+                    </header>
+                    <div class="grid-4 caption" style="gap: 8px 16px;" role="list">
+                        <span role="listitem"><span class="badge badge-blue">HUNTER</span> Research</span>
+                        <span role="listitem"><span class="badge badge-blue">SCRIBE</span> Writing</span>
+                        <span role="listitem"><span class="badge badge-red">VAULT</span> Security</span>
+                        <span role="listitem"><span class="badge badge-blue">ARTIFICER</span> Code</span>
+                        <span role="listitem"><span class="badge badge-blue">BLUEPRINT</span> Arch/Infra</span>
+                        <span role="listitem"><span class="badge badge-red">MECHANIC</span> Debug</span>
+                        <span role="listitem"><span class="badge badge-blue">SPYGLASS</span> Comp Intel</span>
+                        <span role="listitem"><span class="badge badge-blue">SLEUTH</span> Investigation</span>
+                        <span role="listitem"><span class="badge badge-blue">CLOSER</span> Sales</span>
+                        <span role="listitem"><span class="badge badge-blue">PITCH</span> Decks</span>
+                        <span role="listitem"><span class="badge badge-blue">SCAVENGER</span> Deps</span>
+                        <span role="listitem"><span class="badge badge-blue">MARSHAL</span> PM</span>
+                        <span role="listitem"><span class="badge badge-blue">LOCAL</span> Tulsa</span>
+                        <span role="listitem"><span class="badge badge-blue">GIZMO</span> Deploy</span>
+                        <span role="listitem"><span class="badge badge-blue">SIREN</span> Content</span>
+                        <span role="listitem"><span class="badge badge-blue">SCOUT</span> Explore</span>
+                        <span role="listitem"><span class="badge badge-blue">ALCHEMIST</span> Refactor</span>
+                        <span role="listitem"><span class="badge badge-red">IMP</span> Chaos</span>
+                        <span role="listitem"><span class="badge badge-blue">MAKER</span> Fullstack</span>
+                        <span role="listitem"><span class="badge badge-blue">TECHNOMANCER</span> MCP</span>
+                        <span role="listitem"><span class="badge badge-gray">TASTER</span> QA</span>
+                        <span role="listitem"><span class="badge badge-gray">QUARTERMASTER</span> Ops</span>
+                        <span role="listitem"><span class="badge badge-gray">DIPLOMAT</span> BD</span>
+                    </div>
+                </article>
+            </ul>
+        </div>
+        
+        <footer class="section-footer">
+            <span>DONJON SYSTEMS · VIBE NATIVE V3</span>
+            <span class="live-indicator" id="footerStatus2">SYSTEMS NOMINAL</span>
+            <span class="mono" id="footerTime2">00:00:00 UTC</span>
+        </footer>
+        </section>
+        
+        <!-- 03 · PATRIOT FUND RECOVERY -->
+        <section class="section" id="section-03" data-section="03">
+            <span class="section-tag">03 · PROOF OF CONCEPT</span>
+            <h2 class="mb-6">PATRIOT FUND RECOVERY</h2>
+            <p class="lead mb-12 max-w-2xl">One complete, regulated-service venture. Built end-to-end by agents. Pre-revenue. The nearest cash.</p>
+            
+            <div class="grid-2 mb-12" role="list" aria-label="Build components">
+                <article class="card lift" role="listitem">
+                    <h3 class="caption mb-6">COMPONENT STATUS</h3>
+                    <dl class="space-y-4" role="list">
+                        <div class="flex items-center justify-between p-4 bg-zinc-900/50 rounded-lg" role="listitem">
+                            <span>Program Rule Engine (847 rules)</span>
+                            <span class="badge badge-green">COMPLETE</span>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-zinc-900/50 rounded-lg" role="listitem">
+                            <span>Eligibility Screener (47 programs)</span>
+                            <span class="badge badge-green">COMPLETE</span>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-zinc-900/50 rounded-lg" role="listitem">
+                            <span>Document Generator (VA + state forms)</span>
+                            <span class="badge badge-green">COMPLETE</span>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-zinc-900/50 rounded-lg" role="listitem">
+                            <span>Evidence Packager</span>
+                            <span class="badge badge-green">COMPLETE</span>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-zinc-900/50 rounded-lg" role="listitem">
+                            <span>Submission Tracker</span>
+                            <span class="badge badge-green">COMPLETE</span>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-zinc-900/50 rounded-lg" role="listitem">
+                            <span>Client Portal (Next.js/Supabase/Stripe)</span>
+                            <span class="badge badge-green">COMPLETE</span>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-zinc-900/50 rounded-lg" role="listitem">
+                            <span>Partner Dashboard (VSO white-label)</span>
+                            <span class="badge badge-green">COMPLETE</span>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-zinc-900/50 rounded-lg" role="listitem">
+                            <span>Outreach System (email sequences)</span>
+                            <span class="badge badge-green">COMPLETE</span>
+                        </div>
+                    </dl>
+                </article>
+                
+                <article class="card lift" role="listitem">
+                    <h3 class="caption mb-6">BUILD METRICS (ACTUALS)</h3>
+                    <dl class="grid-2" role="list">
+                        <dt class="caption">CALENDAR TIME</dt>
+                        <dd class="metric-value highlight-gold" role="listitem">6 WEEKS</dd>
+                        <dt class="caption">FOUNDER HOURS</dt>
+                        <dd class="metric-value highlight-gold" role="listitem">~4 HRS</dd>
+                        <dt class="caption">ISSUES COMPLETED</dt>
+                        <dd class="metric-value highlight-gold" role="listitem">147</dd>
+                        <dt class="caption">AGENT COMPUTE</dt>
+                        <dd class="metric-value highlight-gold" role="listitem">~$1,200</dd>
+                        <dt class="caption">CODE LINES</dt>
+                        <dd class="metric-value highlight-gold" role="listitem">~31K</dd>
+                        <dt class="caption">COST / ISSUE</dt>
+                        <dd class="metric-value highlight-gold" role="listitem">~$8</dd>
+                    </dl>
+                </article>
+            </ul>
+            
+            <div class="grid-2 mb-12" role="list" aria-label="Honest status">
+                <article class="card card-bordered border-l-red" role="listitem">
+                    <h3 class="caption mb-6 highlight-red">WHAT WE HAVEN'T DONE</h3>
+                    <ul class="space-y-3" role="list">
+                        <li class="flex items-center gap-3" role="listitem"><span class="badge badge-red">NO REVENUE</span> Not launched to market</li>
+                        <li class="flex items-center gap-3" role="listitem"><span class="badge badge-red">NO CLIENTS</span> Pilot conversations only</li>
+                        <li class="flex items-center gap-3" role="listitem"><span class="badge badge-red">NO PARTNERS</span> 3 VSO conversations only</li>
+                        <li class="flex items-center gap-3" role="listitem"><span class="badge badge-red">$0 CAC</span> No marketing spend</li>
+                    </ul>
+                </article>
+                
+                <article class="card card-bordered border-l-green" role="listitem">
+                    <h3 class="caption mb-6 highlight-green">WHAT WE HAVE</h3>
+                    <ul class="space-y-3" role="list">
+                        <li class="flex items-center gap-3" role="listitem"><span class="badge badge-green">PRODUCT</span> Complete & compliance review in progress</li>
+                        <li class="flex items-center gap-3" role="listitem"><span class="badge badge-green">3 VSOs</span> DAV, VFW, American Legion posts</li>
+                        <li class="flex items-center gap-3" role="listitem"><span class="badge badge-green">LAUNCH</span> Month 1 post-funding</li>
+                        <li class="flex items-center gap-3" role="listitem"><span class="badge badge-green">$47B</span> Unclaimed benefits annually (VA OIG)</li>
+                    </ul>
+                </article>
+            </ul>
+            
+            <div class="card card-bordered border-l-gold bg-yellow-500/5 border-yellow-500/20" role="region" aria-label="What this proves">
+                <h3 class="caption mb-4 highlight-gold">WHAT THIS PROVES</h3>
+                <blockquote class="quote-block" style="font-size: 15px;">
+                    <strong>The agents can execute a complete, complex, regulated-service business end-to-end.</strong> Research, rule extraction, code, document generation, portal, compliance, outreach — all without human operators. The founder provided <strong>only</strong> strategic direction ("build this for veterans, these are the programs, here's the pricing logic"). The crew handled every implementation decision.
+                </blockquote>
+                <p class="fine-print mt-4">This is repeatable in principle. The same crew, same platform, same workflow — now pointed at 10 more ventures. Whether the <strong>market</strong> responds the same way is unproven.</p>
+            </div>
+            
+            <div class="card card-bordered mt-8" role="region" aria-label="Agent work breakdown">
+                <h3 class="caption mb-6">AGENT WORK BREAKDOWN (PATRIOT BUILD)</h3>
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr><th>PHASE</th><th>WEEK</th><th>AGENT WORK</th><th>FOUNDER INPUT</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>SPEC</td><td>1</td><td>DonDog → Chef: 147 Paperclip issues with acceptance criteria</td><td>2 hrs review</td></tr>
+                        <tr><td>DATA/RULES</td><td>2</td><td>Hunter + Scavenger: 847 program rules ingested</td><td>0 hrs</td></tr>
+                        <tr><td>CORE LOGIC</td><td>3</td><td>Barrister + Blueprint: Eligibility engine, document gen</td><td>1 hr validation</td></tr>
+                        <tr><td>PORTAL</td><td>4</td><td>Artificer + Gizmo: Next.js/Supabase/Stripe/Twilio</td><td>0 hrs</td></tr>
+                        <tr><td>OUTREACH</td><td>5</td><td>Siren + Closer: Email sequences, VSO partnership deck</td><td>30 min approval</td></tr>
+                        <tr><td>LAUNCH</td><td>6</td><td>Marshal: GTM, first 3 pilot conversations</td><td>1 hr call</td></tr>
+                    </tbody>
+                </table>
+                <p class="fine-print mt-4">Total: 6 weeks · ~4 founder hours · 147 issues · ~$1,200 compute · ~31K lines · ~$8/issue · ~$39/1K lines</p>
+            </div>
+        </div>
+        
+        <footer class="section-footer">
+            <span>DONJON SYSTEMS · VIBE NATIVE V3</span>
+            <span class="live-indicator" id="footerStatus3">SYSTEMS NOMINAL</span>
+            <span class="mono" id="footerTime3">00:00:00 UTC</span>
+        </footer>
+        </section>
+        
+        <!-- 04 · PORTFOLIO -->
+        <section class="section" id="section-04" data-section="04">
+            <span class="section-tag">04 · PORTFOLIO</span>
+            <h2 class="mb-6">11 VENTURES · ONE CREW</h2>
+            <p class="lead mb-12 max-w-2xl">All designed. 1 built. 7 selection criteria — all pass. Deployed in 3 waves with kill criteria.</p>
+            
+            <div class="overflow-x-auto mb-12" role="region" aria-label="Portfolio table">
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">#</th>
+                            <th>VENTURE</th>
+                            <th>ARCHETYPE</th>
+                            <th>CHARGE METRIC</th>
+                            <th style="width: 120px;">ENTRY PRICE</th>
+                            <th style="width: 100px;">MARGIN</th>
+                            <th style="width: 100px;">WAVE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="bg-yellow-500/5 border-l-4 border-yellow-500">
+                            <td class="mono font-semibold">1</td>
+                            <td class="font-semibold">Patriot Fund Recovery</td>
+                            <td>Service→SaaS</td>
+                            <td>Per case + platform</td>
+                            <td class="mono">$500/case</td>
+                            <td class="highlight-gold">80-85%</td>
+                            <td><span class="badge badge-gold">BUILT</span></td>
+                        </tr>
+                        <tr>
+                            <td class="mono">2</td>
+                            <td>Niche Regulatory Compliance Reports</td>
+                            <td>Service→SaaS</td>
+                            <td>Per report + monitoring</td>
+                            <td class="mono">$750</td>
+                            <td class="highlight-gold">75-85%</td>
+                            <td><span class="badge badge-blue">WAVE 1</span></td>
+                        </tr>
+                        <tr>
+                            <td class="mono">3</td>
+                            <td>Micro-M&A Due Diligence Packs</td>
+                            <td>Service</td>
+                            <td>Per deal (hybrid)</td>
+                            <td class="mono">$3,000</td>
+                            <td class="highlight-gold">65-80%</td>
+                            <td><span class="badge badge-yellow">WAVE 2</span></td>
+                        </tr>
+                        <tr>
+                            <td class="mono">4</td>
+                            <td>Vertical SEO Content Factories</td>
+                            <td>Agent→SaaS</td>
+                            <td>Per piece + platform</td>
+                            <td class="mono">$75</td>
+                            <td class="highlight-gold">75-90%</td>
+                            <td><span class="badge badge-yellow">WAVE 2</span></td>
+                        </tr>
+                        <tr>
+                            <td class="mono">5</td>
+                            <td>GovCon Proposal Engine</td>
+                            <td>Service→Agent</td>
+                            <td>Per proposal + retainer</td>
+                            <td class="mono">$8,000</td>
+                            <td class="highlight-gold">65-75%</td>
+                            <td><span class="badge badge-red">WAVE 3</span></td>
+                        </tr>
+                        <tr>
+                            <td class="mono">6</td>
+                            <td>Legacy Code Modernization Assessment</td>
+                            <td>Service</td>
+                            <td>Per assessment</td>
+                            <td class="mono">$12,000</td>
+                            <td class="highlight-gold">65-75%</td>
+                            <td><span class="badge badge-red">WAVE 3</span></td>
+                        </tr>
+                        <tr>
+                            <td class="mono">7</td>
+                            <td>Specialist Compliance Micro-SaaS</td>
+                            <td>Service→SaaS</td>
+                            <td>Per seat/mo</td>
+                            <td class="mono">$199</td>
+                            <td class="highlight-gold">80-90%</td>
+                            <td><span class="badge badge-blue">WAVE 1</span></td>
+                        </tr>
+                        <tr>
+                            <td class="mono">8</td>
+                            <td>AI Grant Writing & Management</td>
+                            <td>Agent→SaaS</td>
+                            <td>Per app + platform</td>
+                            <td class="mono">$1,500</td>
+                            <td class="highlight-gold">70-85%</td>
+                            <td><span class="badge badge-red">WAVE 3</span></td>
+                        </tr>
+                        <tr>
+                            <td class="mono">9</td>
+                            <td>Insurance Policy Optimization</td>
+                            <td>Agent Platform</td>
+                            <td>Per review + seat</td>
+                            <td class="mono">$300</td>
+                            <td class="highlight-gold">75-85%</td>
+                            <td><span class="badge badge-yellow">WAVE 2</span></td>
+                        </tr>
+                        <tr>
+                            <td class="mono">10</td>
+                            <td>Clinical Trial Protocol Automation</td>
+                            <td>Service→Agent</td>
+                            <td>Per protocol</td>
+                            <td class="mono">$35,000</td>
+                            <td class="highlight-gold">65-75%</td>
+                            <td><span class="badge badge-red">WAVE 3</span></td>
+                        </tr>
+                        <tr>
+                            <td class="mono">11</td>
+                            <td>Technical Standards & Cert Prep</td>
+                            <td>Agent→SaaS</td>
+                            <td>Per cert + monitoring</td>
+                            <td class="mono">$8,000</td>
+                            <td class="highlight-gold">70-80%</td>
+                            <td><span class="badge badge-yellow">WAVE 2</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="grid-3 mb-12" role="list" aria-label="Selection criteria">
+                <article class="card lift" role="listitem">
+                    <span class="badge badge-green mb-3">SELECTION CRITERIA</span>
+                    <ul class="space-y-3 body" role="list">
+                        <li role="listitem"><span class="badge badge-green mr-2">✓</span>Decomposable — Chef specs in <50 issues</li>
+                        <li role="listitem"><span class="badge badge-green mr-2">✓</span>High-margin — Modeled ≥65% gross margin</li>
+                        <li role="listitem"><span class="badge badge-green mr-2">✓</span>Recurring path — Service → Platform clear</li>
+                        <li role="listitem"><span class="badge badge-green mr-2">✓</span>Agent-native — Research, code, design, QA all used</li>
+                        <li role="listitem"><span class="badge badge-green mr-2">✓</span>Data moat — Each execution improves next</li>
+                        <li role="listitem"><span class="badge badge-green mr-2">✓</span>$10M+ TAM — Venture-scale, not lifestyle</li>
+                        <li role="listitem"><span class="badge badge-green mr-2">✓</span>Regulatory complexity — Barriers = moat</li>
+                    </ul>
+                </article>
+                
+                <article class="card lift" role="listitem">
+                    <div class="wave-header mb-4">
+                        <span class="wave-num highlight-gold">1</span>
+                        <div>
+                            <div style="font-weight: 600; font-size: 18px;">WAVE 1 — FASTEST TO MARKET</div>
+                            <span class="badge badge-blue">MONTHS 1-3</span>
+                        </div>
+                    </div>
+                    <p class="body mb-6">Patriot + Compliance Micro-SaaS. Clearest demand, fastest path to revenue.</p>
+                    <dl class="grid-3 caption" role="list">
+                        <dt role="listitem">CAPITAL</dt><dd class="mono highlight-gold">$450K</dd>
+                        <dt role="listitem">VENTURES</dt><dd class="mono highlight-gold">2-3</dd>
+                        <dt role="listitem">MRR TARGET</dt><dd class="mono highlight-gold">$10K</dd>
+                    </dl>
+                </article>
+                
+                <article class="card lift" role="listitem">
+                    <div class="wave-header mb-4">
+                        <span class="wave-num highlight-yellow">2</span>
+                        <div>
+                            <div style="font-weight: 600; font-size: 18px;">WAVE 2 — PLATFORM TRANSITION</div>
+                            <span class="badge badge-yellow">MONTHS 3-6</span>
+                        </div>
+                    </div>
+                    <p class="body mb-6">M&A Diligence, SEO Content, Insurance, Cert Prep. Higher ticket, platform transition.</p>
+                    <dl class="grid-3 caption" role="list">
+                        <dt role="listitem">CAPITAL</dt><dd class="mono highlight-yellow">$750K</dd>
+                        <dt role="listitem">VENTURES</dt><dd class="mono highlight-yellow">4</dd>
+                        <dt role="listitem">MRR TARGET</dt><dd class="mono highlight-yellow">$50K</dd>
+                    </dl>
+                </article>
+                
+                <article class="card lift" role="listitem">
+                    <div class="wave-header mb-4">
+                        <span class="wave-num highlight-red">3</span>
+                        <div>
+                            <div style="font-weight: 600; font-size: 18px;">WAVE 3 — HIGHEST EQUITY VALUE</div>
+                            <span class="badge badge-red">MONTHS 6-12</span>
+                        </div>
+                    </div>
+                    <p class="body mb-6">GovCon, Legacy Code, Grant Writing, Clinical Trials. Complex regulatory, highest equity value.</p>
+                    <dl class="grid-3 caption" role="list">
+                        <dt role="listitem">CAPITAL</dt><dd class="mono highlight-red">$1.2M</dd>
+                        <dt role="listitem">VENTURES</dt><dd class="mono highlight-red">4</dd>
+                        <dt role="listitem">MRR TARGET</dt><dd class="mono highlight-red">$100K</dd>
+                    </dl>
+                </article>
+            </ul>
+            
+            <div class="card card-bordered border-l-red bg-red-500/5 border-red-500/20 mt-8 p-8" role="region" aria-label="Kill criteria">
+                <h3 class="caption mb-6 highlight-red">KILL CRITERIA — NO ZOMBIE VENTURES</h3>
+                <dl class="grid-2 caption" role="list">
+                    <dt role="listitem">NO LOI BY WEEK 4</dt><dd class="highlight-red">→ PAUSE VENTURE</dd>
+                    <dt role="listitem">NO REVENUE BY WEEK 8</dt><dd class="highlight-red">→ KILL VENTURE</dd>
+                    <dt role="listitem">WAVE 2/3 SPEND PAUSED</dt><dd class="highlight-red">IF M6 REVENUE MILESTONE MISSED</dd>
+                    <dt role="listitem">CLAY IS BOTTLENECK</dt><dd class="highlight-red">STRATEGY / GOVERNANCE / CAPITAL</dd>
+                </dl>
+            </div>
+        </div>
+        
+        <footer class="section-footer">
+            <span>DONJON SYSTEMS · VIBE NATIVE V3</span>
+            <span class="live-indicator" id="footerStatus4">SYSTEMS NOMINAL</span>
+            <span class="mono" id="footerTime4">00:00:00 UTC</span>
+        </footer>
+        </section>
+        
+        <!-- 05 · FINANCIAL MODELS -->
+        <section class="section" id="section-05" data-section="05">
+            <span class="section-tag">05 · FINANCIAL MODELS</span>
+            <h2 class="mb-6">UNIT ECONOMICS & PROJECTIONS</h2>
+            <p class="lead mb-12 max-w-2xl"><strong class="highlight-red">EXPLICITLY MODELS — NOT ACTUALS.</strong> All venture revenue figures are modeled projections based on Patriot build metrics. We have <strong class="highlight-red">$0 revenue today.</strong></p>
+            
+            <div class="warn-box mb-12" role="alert">
+                <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <div>
+                    <strong class="highlight-orange">THESE ARE MODELS — NOT ACTUALS.</strong> All venture revenue figures are modeled projections based on Patriot build metrics. <strong class="highlight-red">We have $0 revenue today.</strong> Key assumptions: 8% win rate, 60-day sales cycle, 20% expansion revenue, 5% monthly churn. Reality will differ materially.
+                </div>
+            </div>
+            
+            <div class="grid-2 mb-12">
+                <article class="card lift" role="region" aria-label="Unit economics">
+                    <h3 class="caption mb-6">UNIT ECONOMICS (PER VENTURE, AT SCALE)</h3>
+                    <table class="data-table" role="table">
+                        <thead>
+                            <tr><th>METRIC</th><th>SERVICE PHASE</th><th>PLATFORM PHASE</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>MODELED MONTHLY REVENUE</td><td class="mono">$40K</td><td class="mono">$80K</td></tr>
+                            <tr><td>AGENT COMPUTE</td><td class="mono">$3K</td><td class="mono">$5K</td></tr>
+                            <tr><td>INFRASTRUCTURE</td><td class="mono">$1.5K</td><td class="mono">$3K</td></tr>
+                            <tr><td>DATA/LICENSING</td><td class="mono">$2K</td><td class="mono">$4K</td></tr>
+                            <tr><td>G&A ALLOCATION</td><td class="mono">$2K</td><td class="mono">$3K</td></tr>
+                            <tr class="bg-green-500/5"><td class="font-semibold">MODELED GROSS PROFIT</td><td class="mono font-semibold highlight-gold">$31.5K</td><td class="mono font-semibold highlight-gold">$65K</td></tr>
+                            <tr class="bg-green-500/5"><td class="font-semibold">MODELED GROSS MARGIN</td><td class="mono font-semibold highlight-gold">79%</td><td class="mono font-semibold highlight-gold">81%</td></tr>
+                        </tbody>
+                    </table>
+                    <p class="fine-print mt-4">*Assumes zero human delivery cost — true only while Clay is sole operator. At scale, human-in-loop, support, sales add cost.</p>
+                </article>
+                
+                <article class="card lift" role="region" aria-label="Key assumptions">
+                    <h3 class="caption mb-6">KEY MODEL ASSUMPTIONS</h3>
+                    <dl class="space-y-3 caption" role="list">
+                        <div class="flex justify-between p-3 bg-zinc-900/50 rounded-lg" role="listitem"><dt>WIN RATE (OUTBOUND)</dt><dd class="mono highlight-gold">8%</dd></div>
+                        <div class="flex justify-between p-3 bg-zinc-900/50 rounded-lg" role="listitem"><dt>SALES CYCLE</dt><dd class="mono highlight-gold">60 DAYS</dd></div>
+                        <div class="flex justify-between p-3 bg-zinc-900/50 rounded-lg" role="listitem"><dt>EXPANSION REVENUE</dt><dd class="mono highlight-gold">20%/YR</dd></div>
+                        <div class="flex justify-between p-3 bg-zinc-900/50 rounded-lg" role="listitem"><dt>CHANNEL ATTACH</dt><dd class="mono highlight-gold">2 PARTNERS/VENTURE</dd></div>
+                        <div class="flex justify-between p-3 bg-zinc-900/50 rounded-lg" role="listitem"><dt>CHURN (PLATFORM)</dt><dd class="mono highlight-red">5%/MO</dd></div>
+                        <div class="flex justify-between p-3 bg-zinc-900/50 rounded-lg" role="listitem"><dt>MODEL COST DECLINE</dt><dd class="mono highlight-blue">10X/3YR (NOT IN MODEL)</dd></div>
+                    </dl>
+                </article>
+            </div>
+            
+            <div class="mb-12" role="region" aria-label="Revenue chart">
+                <div class="chart-wrapper">
+                    <canvas id="revenueChart" aria-label="Modeled monthly revenue by venture"></canvas>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto mb-12" role="region" aria-label="Portfolio revenue model">
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">#</th>
+                            <th>VENTURE</th>
+                            <th>MODELED MO 18 REV</th>
+                            <th>MODELED ARR</th>
+                            <th>MARGIN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="bg-yellow-500/5 border-l-4 border-yellow-500"><td class="mono">1</td><td class="font-semibold">Patriot Fund Recovery</td><td class="mono">$25K</td><td class="mono">$300K</td><td class="highlight-gold">85%</td></tr>
+                        <tr><td class="mono">2</td><td>Regulatory Reports</td><td class="mono">$45K</td><td class="mono">$540K</td><td class="highlight-gold">75%</td></tr>
+                        <tr><td class="mono">3</td><td>M&A Diligence</td><td class="mono">$60K</td><td class="mono">$720K</td><td class="highlight-gold">70%</td></tr>
+                        <tr><td class="mono">4</td><td>SEO Content</td><td class="mono">$35K</td><td class="mono">$420K</td><td class="highlight-gold">80%</td></tr>
+                        <tr><td class="mono">5</td><td>GovCon Proposals</td><td class="mono">$40K</td><td class="mono">$480K</td><td class="highlight-gold">70%</td></tr>
+                        <tr><td class="mono">6</td><td>Legacy Code Assessment</td><td class="mono">$80K</td><td class="mono">$960K</td><td class="highlight-gold">70%</td></tr>
+                        <tr><td class="mono">7</td><td>Compliance Micro-SaaS</td><td class="mono">$25K</td><td class="mono">$300K</td><td class="highlight-gold">85%</td></tr>
+                        <tr><td class="mono">8</td><td>Grant Writing</td><td class="mono">$30K</td><td class="mono">$360K</td><td class="highlight-gold">75%</td></tr>
+                        <tr><td class="mono">9</td><td>Insurance Optimization</td><td class="mono">$35K</td><td class="mono">$420K</td><td class="highlight-gold">80%</td></tr>
+                        <tr><td class="mono">10</td><td>Clinical Trial Protocol</td><td class="mono">$50K</td><td class="mono">$600K</td><td class="highlight-gold">70%</td></tr>
+                        <tr><td class="mono">11</td><td>Cert Prep</td><td class="mono">$55K</td><td class="mono">$660K</td><td class="highlight-gold">75%</td></tr>
+                        <tr class="bg-yellow-500/5 border-l-4 border-yellow-500 font-semibold"><td colspan="2">TOTAL (MODELED)</td><td class="mono highlight-gold">$480K</td><td class="mono highlight-gold">$5.76M</td><td class="highlight-gold">75% blended</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="grid-3 mb-12" role="list" aria-label="Trajectory summary">
+                <article class="card lift text-center" role="listitem">
+                    <dt class="metric-value highlight-gold" style="font-size: 40px;">$5.8M</dt>
+                    <dd class="metric-label">YEAR 1 BASE ARR</dd>
+                </article>
+                <article class="card lift text-center" role="listitem">
+                    <dt class="metric-value highlight-gold" style="font-size: 40px;">$13M</dt>
+                    <dd class="metric-label">YEAR 1 UPSIDE ARR</dd>
+                </article>
+                <article class="card lift text-center" role="listitem">
+                    <dt class="metric-value highlight-gold" style="font-size: 40px;">11</dt>
+                    <dd class="metric-label">VENTURES LIVE</dd>
+                </article>
+            </ul>
+            
+            <div class="mb-12" role="region" aria-label="36-month trajectory chart">
+                <div class="chart-wrapper">
+                    <canvas id="trajectoryChart" aria-label="36-month ARR trajectory"></canvas>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto mb-12" role="region" aria-label="36-month trajectory">
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr>
+                            <th>YEAR</th>
+                            <th>VENTURES LIVE</th>
+                            <th style="width: 160px;">BASE ARR</th>
+                            <th style="width: 160px;">UPSIDE ARR</th>
+                            <th style="width: 140px;">HEADCOUNT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="mono font-semibold">YEAR 1</td><td>11</td><td class="mono">$5.8M</td><td class="mono">$13M</td><td>1 (FOUNDER)</td></tr>
+                        <tr><td class="mono">YEAR 2</td><td>11 + 5 NEW</td><td class="mono">$18M</td><td class="mono">$42M</td><td>3 (FOUNDER + 2)</td></tr>
+                        <tr><td class="mono">YEAR 3</td><td>16 + 8 NEW</td><td class="mono">$52M</td><td class="mono">$110M</td><td>5 (FOUNDER + 4)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="card card-bordered border-l-red bg-red-500/5 border-red-500/20 p-8" role="region" aria-label="Model vs reality">
+                <h3 class="caption mb-6 highlight-red">MODEL vs REALITY CHECK</h3>
+                <div class="grid-2">
+                    <div>
+                        <h4 class="caption highlight-green mb-3">MODEL ASSUMES</h4>
+                        <ul class="space-y-2 body" role="list">
+                            <li role="listitem">Zero marginal human cost for delivery</li>
+                            <li role="listitem">Perfect parallelization of ventures</li>
+                            <li role="listitem">Instant hiring of competent partners</li>
+                            <li role="listitem">Market demand matches modeled win rates</li>
+                            <li role="listitem">No regulatory delays</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="caption highlight-red mb-3">REALITY CHECK</h4>
+                        <ul class="space-y-2 body" role="list">
+                            <li role="listitem">Clay is single point of strategy & governance</li>
+                            <li role="listitem">Each venture adds complexity, not just revenue</li>
+                            <li role="listitem">Hiring partners takes 6-12 months</li>
+                            <li role="listitem">Market demand is unproven (High risk)</li>
+                            <li role="listitem">Regulatory/compliance delays are certain</li>
+                        </ul>
+                    </div>
+                </div>
+                <p class="fine-print mt-4"><strong>"ZERO MARGINAL HUMAN COST" APPLIES ONLY TO DELIVERY.</strong> Direction, governance, capital allocation, partner hiring, and crisis management do not parallelize. Clay is the bottleneck.</p>
+            </div>
+        </div>
+        
+        <footer class="section-footer">
+            <span>DONJON SYSTEMS · VIBE NATIVE V3</span>
+            <span class="live-indicator" id="footerStatus5">SYSTEMS NOMINAL</span>
+            <span class="mono" id="footerTime5">00:00:00 UTC</span>
+        </footer>
+        </section>
+        
+        <!-- 06 · CAPITAL -->
+        <section class="section" id="section-06" data-section="06">
+            <span class="section-tag">06 · CAPITAL REQUIREMENTS</span>
+            <h2 class="mb-6">$2.46M OVER 12 MONTHS</h2>
+            <p class="lead mb-12 max-w-2xl">Actual budget — not a model. $25-50K bridge first, then revenue-funded.</p>
+            
+            <div class="overflow-x-auto mb-12" role="region" aria-label="Capital budget">
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr>
+                            <th>CATEGORY</th>
+                            <th style="width: 140px;">WAVE 1 (M1-3)</th>
+                            <th style="width: 140px;">WAVE 2 (M3-6)</th>
+                            <th style="width: 140px;">WAVE 3 (M6-12)</th>
+                            <th style="width: 120px;">TOTAL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>AGENT COMPUTE</td><td class="mono">$45K</td><td class="mono">$75K</td><td class="mono">$120K</td><td class="mono font-semibold">$240K</td></tr>
+                        <tr><td>INFRASTRUCTURE</td><td class="mono">$30K</td><td class="mono">$50K</td><td class="mono">$80K</td><td class="mono font-semibold">$160K</td></tr>
+                        <tr><td>DATA/LICENSING</td><td class="mono">$75K</td><td class="mono">$125K</td><td class="mono">$200K</td><td class="mono font-semibold">$400K</td></tr>
+                        <tr><td>LEGAL/COMPLIANCE</td><td class="mono">$50K</td><td class="mono">$75K</td><td class="mono">$100K</td><td class="mono font-semibold">$225K</td></tr>
+                        <tr><td>GO-TO-MARKET</td><td class="mono">$150K</td><td class="mono">$250K</td><td class="mono">$400K</td><td class="mono font-semibold">$800K</td></tr>
+                        <tr><td>FOUNDER DRAW</td><td class="mono">$60K</td><td class="mono">$120K</td><td class="mono">$240K</td><td class="mono font-semibold">$420K</td></tr>
+                        <tr><td>CONTINGENCY (15%)</td><td class="mono">$40K</td><td class="mono">$60K</td><td class="mono">$115K</td><td class="mono font-semibold">$215K</td></tr>
+                        <tr class="bg-yellow-500/5 border-l-4 border-yellow-500 font-semibold"><td>TOTAL</td><td class="mono">$450K</td><td class="mono">$755K</td><td class="mono">$1,255K</td><td class="mono highlight-gold">$2.46M</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="grid-4 mb-12" role="list" aria-label="Capital allocation">
+                <article class="card lift text-center" role="listitem">
+                    <dt class="metric-value highlight-gold" style="font-size: 40px;">82%</dt>
+                    <dd class="metric-label">VENTURE DEPLOYMENT</dd>
+                </article>
+                <article class="card lift text-center" role="listitem">
+                    <dt class="metric-value highlight-gold" style="font-size: 40px;">10%</dt>
+                    <dd class="metric-label">DOER HARDENING</dd>
+                </article>
+                <article class="card lift text-center" role="listitem">
+                    <dt class="metric-value highlight-gold" style="font-size: 40px;">5%</dt>
+                    <dd class="metric-label">LEGAL/COMPLIANCE</dd>
+                </article>
+                <article class="card lift text-center" role="listitem">
+                    <dt class="metric-value highlight-gold" style="font-size: 40px;">3%</dt>
+                    <dd class="metric-label">BUFFER</dd>
+                </article>
+            </ul>
+            
+            <div class="card card-bordered border-l-gold bg-yellow-500/5 border-yellow-500/20 p-8" role="region" aria-label="What this buys">
+                <h3 class="caption mb-6 highlight-gold">WHAT THIS BUYS</h3>
+                <dl class="grid-2 caption" role="list">
+                    <dt role="listitem">11 VENTURES DEPLOYED</dt><dd>(1 DONE, 10 TO GO)</dd>
+                    <dt role="listitem">DOER PLATFORM HARDENED</dt><dd>MULTI-VENTURE PRODUCTION</dd>
+                    <dt role="listitem">SOC 2 TYPE II READY</dt><dd>BY MONTH 9</dd>
+                    <dt role="listitem">LEGAL ENTITY STRUCTURE</dt><dd>VENTURE SPIN-OUTS READY</dd>
+                    <dt role="listitem">RUNWAY TO FIRST REVENUE</dt><dd>PORTFOLIO VALIDATION</dd>
+                    <dt role="listitem">NOT INCLUDED</dt><dd class="highlight-red">SERIES A BRIDGE IF GTM SLOWER</dd>
+                </dl>
+            </div>
+        </div>
+        
+        <footer class="section-footer">
+            <span>DONJON SYSTEMS · VIBE NATIVE V3</span>
+            <span class="live-indicator" id="footerStatus6">SYSTEMS NOMINAL</span>
+            <span class="mono" id="footerTime6">00:00:00 UTC</span>
+        </footer>
+        </section>
+        
+        <!-- 07 · GTM -->
+        <section class="section" id="section-07" data-section="07">
+            <span class="section-tag">07 · GO-TO-MARKET</span>
+            <h2 class="mb-6">AGENT-NATIVE FUNNEL</h2>
+            <p class="lead mb-12 max-w-2xl">Every funnel stage assigned to a specialized gremlin. <strong class="highlight-yellow">Plan — not yet executed.</strong></p>
+            
+            <div class="overflow-x-auto mb-12" role="region" aria-label="GTM funnel">
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr><th>FUNNEL STAGE</th><th>GREMLIN(S)</th><th>ACTIVITY</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="font-semibold">TARGET ID</td><td>HUNTER + SPYGLASS</td><td>Scrape databases, track intent signals, build ICP lists (5,000+/venture)</td></tr>
+                        <tr><td class="font-semibold">RESEARCH</td><td>SLEUTH + HUNTER</td><td>Deep account research, tech stack, org chart, pain points (50-page dossiers)</td></tr>
+                        <tr><td class="font-semibold">OUTREACH</td><td>SIREN + CLOSER</td><td>Hyper-personalized sequences, multi-channel, A/B tested (500 touches/day)</td></tr>
+                        <tr><td class="font-semibold">DISCOVERY</td><td>CLOSER + MARSHAL</td><td>Demo, qualification, business case, champion building</td></tr>
+                        <tr><td class="font-semibold">PROPOSAL</td><td>PITCH + SCRIBE + BLUEPRINT</td><td>Auto-generated proposals, ROI calculators, implementation plans</td></tr>
+                        <tr><td class="font-semibold">CLOSE</td><td>CLOSER + VAULT</td><td>Negotiation, security review, contract generation</td></tr>
+                        <tr><td class="font-semibold">ONBOARD</td><td>MARSHAL + ARTIFICER + BLUEPRINT</td><td>Automated provisioning, training, quick wins (3-day TTV target)</td></tr>
+                        <tr><td class="font-semibold">EXPAND</td><td>SIREN + SCOUT + MARSHAL</td><td>Usage monitoring, upsell signals, quarterly business reviews</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="overflow-x-auto mb-12" role="region" aria-label="Channel strategy">
+                <h3 class="caption mb-6">CHANNEL STRATEGY (PLANNED, UNPROVEN)</h3>
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr><th>VENTURE</th><th>PRIMARY CHANNEL</th><th>PARTNERSHIP TARGETS</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="font-semibold">Patriot Fund Recovery</td><td>VSO partnerships</td><td>3 in conversation, targeting 50</td></tr>
+                        <tr><td>Regulatory Reports</td><td>CPA firms, law firms</td><td>50 CPA, 20 law firms</td></tr>
+                        <tr><td>M&A Diligence</td><td>PE deal teams, advisors</td><td>30 PE firms, 15 advisors</td></tr>
+                        <tr><td>SEO Content</td><td>Agency partnerships</td><td>100 agencies, 500 SMBs</td></tr>
+                        <tr><td>GovCon Proposals</td><td>GovCon contractors</td><td>200 contractors</td></tr>
+                        <tr><td>Legacy Code</td><td>PE firms, tech DD firms</td><td>50 PE firms</td></tr>
+                        <tr><td>Compliance SaaS</td><td>Vertical MSPs, VARs</td><td>20 vertical MSPs</td></tr>
+                        <tr><td>Grant Writing</td><td>Nonprofit networks, universities</td><td>500 nonprofits, 50 univ</td></tr>
+                        <tr><td>Insurance</td><td>Independent agencies</td><td>1,000 agencies</td></tr>
+                        <tr><td>Clinical Trial</td><td>Biotech/CROs, Pharma BD</td><td>50 biotechs, 10 CROs</td></tr>
+                        <tr><td>Cert Prep</td><td>Consultancies, cloud providers</td><td>100 consultancies</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="warn-box mb-12" role="alert">
+                <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <div>
+                    <strong class="highlight-orange">WE HAVE NOT EXECUTED ANY OF THIS.</strong> This is a plan. No outreach sent, no demos given, no proposals sent. The GTM motion is unproven. Month 6 revenue milestone is the real gate.
+                </div>
+            </div>
+        </div>
+        
+        <footer class="section-footer">
+            <span>DONJON SYSTEMS · VIBE NATIVE V3</span>
+            <span class="live-indicator" id="footerStatus7">SYSTEMS NOMINAL</span>
+            <span class="mono" id="footerTime7">00:00:00 UTC</span>
+        </footer>
+        </section>
+        
+        <!-- 08 · MOATS & RISKS -->
+        <section class="section" id="section-08" data-section="08">
+            <span class="section-tag">08 · MOATS & RISKS</span>
+            <h2 class="mb-6">COMPETITIVE POSITION</h2>
+            <p class="lead mb-12 max-w-2xl">Structural advantages vs. honest risk assessment.</p>
+            
+            <div class="grid-2 mb-12">
+                <article class="card lift" role="region" aria-label="Moats">
+                    <h3 class="caption mb-6 highlight-green">STRUCTURAL MOATS</h3>
+                    <dl class="space-y-4" role="list">
+                        <div class="p-4 bg-zinc-900/50 rounded-lg border-l-4 border-green-500" role="listitem">
+                            <h4 class="font-semibold mb-1">1. STRUCTURAL COST ADVANTAGE</h4>
+                            <p class="body text-sm">Modeled 75-85% gross margins vs 60-70% human-delivered. Zero marginal delivery cost. <strong class="highlight-yellow">Caveat:</strong> human direction/sales/support cost at scale.</p>
+                        </div>
+                        <div class="p-4 bg-zinc-900/50 rounded-lg border-l-4 border-blue-500" role="listitem">
+                            <h4 class="font-semibold mb-1">2. COMPOUND DATA MOATS</h4>
+                            <p class="body text-sm">Every engagement improves agent memory (Letta). Regulatory DBs, code patterns, proposal win patterns compound. If we execute all 11.</p>
+                        </div>
+                        <div class="p-4 bg-zinc-900/50 rounded-lg border-l-4 border-purple-500" role="listitem">
+                            <h4 class="font-semibold mb-1">3. PLATFORM LOCK-IN (DOER)</h4>
+                            <p class="body text-sm">Shared memory, tooling, governance. Ecosystem discounts. Switching cost = rebuilding agent memory from scratch.</p>
+                        </div>
+                        <div class="p-4 bg-zinc-900/50 rounded-lg border-l-4 border-yellow-500" role="listitem">
+                            <h4 class="font-semibold mb-1">4. SPEED TO MARKET</h4>
+                            <p class="body text-sm">Concept → Deployed Product in 6 weeks (proven). Venture studio: 12-18 months. SaaS: 18-24 months to $1M ARR.</p>
+                        </div>
+                        <div class="p-4 bg-zinc-900/50 rounded-lg border-l-4 border-orange-500" role="listitem">
+                            <h4 class="font-semibold mb-1">5. TALENT ARBITRAGE</h4>
+                            <p class="body text-sm">24 specialized gremlins > 50 human specialists (cost, speed, consistency). Memory never leaves (Letta).</p>
+                        </div>
+                    </dl>
+                </article>
+                
+                <article class="card lift" role="region" aria-label="Risks">
+                    <h3 class="caption mb-6 highlight-red">HONEST RISK ASSESSMENT</h3>
+                    <div class="overflow-x-auto">
+                        <table class="data-table" role="table">
+                            <thead>
+                                <tr><th>RISK</th><th style="width: 100px;">PROBABILITY</th><th style="width: 100px;">IMPACT</th><th>MITIGATION</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-red-500/5"><td class="font-semibold">NO MARKET DEMAND</td><td class="highlight-red font-semibold">HIGH</td><td class="highlight-red font-semibold">CRITICAL</td><td>Wave 1 validates first; kill criteria: $10K MRR by Month 6 or pivot/kill</td></tr>
+                                <tr><td class="font-semibold">CLIENT TRUST IN "AI-ONLY"</td><td class="highlight-red font-semibold">HIGH</td><td class="highlight-red font-semibold">HIGH</td><td>Human-in-loop tier; transparency reports; SOC 2 by Month 9</td></tr>
+                                <tr class="bg-red-500/5"><td class="font-semibold">FOUNDER DEPENDENCY</td><td class="highlight-red font-semibold">HIGH</td><td class="highlight-red font-semibold">HIGH</td><td>Doer codifies orchestration; succession in soul.md — but Clay is single point of strategy today</td></tr>
+                                <tr><td class="font-semibold">EXECUTION COMPLEXITY</td><td class="highlight-yellow font-semibold">MEDIUM</td><td class="highlight-red font-semibold">HIGH</td><td>Chef/Alfie proven; 11 parallel ventures untested</td></tr>
+                                <tr><td class="font-semibold">MODEL CAPABILITY PLATEAU</td><td class="highlight-yellow font-semibold">MEDIUM</td><td class="highlight-red font-semibold">HIGH</td><td>Multi-model routing; fine-tuning pipeline ready</td></tr>
+                                <tr><td class="font-semibold">REGULATORY CHANGE</td><td class="highlight-green font-semibold">LOW</td><td class="highlight-yellow font-semibold">MEDIUM</td><td>Barrister monitors Fed Register; auto-alerts; rapid re-spec</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            </div>
+            
+            <div class="critical-box mb-12" role="alert">
+                <h3 class="caption mb-3 highlight-red">TOP 3 RISKS THAT COULD KILL THIS</h3>
+                <ol class="space-y-4 body" role="list">
+                    <li role="listitem">
+                        <strong class="highlight-red">NO MARKET DEMAND (HIGH/CRITICAL):</strong> We have 0 revenue, 0 customers, 0 signed partnerships. Wave 1 is the validation gate. If Patriot + Wave 1 don't hit $10K MRR by Month 6, we pivot or shut down.
+                    </li>
+                    <li>
+                        <strong class="highlight-red">FOUNDER DEPENDENCY (HIGH/HIGH):</strong> Clay is the sole strategist, governor, and capital allocator. No succession plan executes without him. The model assumes Clay can direct 11+ parallel ventures — untested.
+                    </li>
+                    <li>
+                        <strong class="highlight-red">CLIENT TRUST IN AI-ONLY DELIVERY (HIGH/HIGH):</strong> Regulated industries (veterans benefits, GovCon, clinical trials) require human accountability. "AI-only" may be a non-starter for early adopters without human-in-loop tier.
+                    </li>
+                </ol>
+            </div>
+        </div>
+        
+        <footer class="section-footer">
+            <span>DONJON SYSTEMS · VIBE NATIVE V3</span>
+            <span class="live-indicator" id="footerStatus8">SYSTEMS NOMINAL</span>
+            <span class="mono" id="footerTime8">00:00:00 UTC</span>
+        </footer>
+        </section>
+        
+        <!-- 09 · THE ASK -->
+        <section class="section" id="section-09" data-section="09">
+            <span class="section-tag">09 · THE ASK</span>
+            <h2 class="mb-6 text-center">$3M SEED</h2>
+            <p class="lead mb-12 max-w-xl mx-auto text-center">SAFE · $25M CAP · 20% DISCOUNT</p>
+            
+            <div class="max-w-2xl mx-auto mb-12" role="region" aria-label="Use of funds">
+                <table class="data-table mx-auto" role="table">
+                    <thead>
+                        <tr><th>ALLOCATION</th><th style="width: 120px;">AMOUNT</th><th style="width: 60px;">%</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>VENTURE DEPLOYMENT</td><td class="mono">$2.46M</td><td class="mono font-semibold">82%</td></tr>
+                        <tr><td>DOER PLATFORM HARDENING</td><td class="mono">$300K</td><td class="mono font-semibold">10%</td></tr>
+                        <tr><td>LEGAL/COMPLIANCE RESERVE</td><td class="mono">$150K</td><td class="mono font-semibold">5%</td></tr>
+                        <tr><td>BUFFER</td><td class="mono">$90K</td><td class="mono font-semibold">3%</td></tr>
+                        <tr class="bg-yellow-500/5 border-l-4 border-yellow-500 font-semibold"><td>TOTAL</td><td class="mono">$3.0M</td><td class="mono font-semibold">100%</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="space-y-6 mb-12" role="list" aria-label="Milestones">
+                <article class="wave-card card lift p-8" data-wave="M3" role="listitem">
+                    <div class="flex items-start gap-6">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); display: flex; align-items: center; justify-content: center;">
+                            <span class="mono" style="font-size: 18px; font-weight: 700; color: #3b82f6;">M3</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold mb-1">MONTH 3 — 3 VENTURES LIVE</h4>
+                            <p class="body">Patriot + 2 Wave 1. Build velocity maintained.</p>
+                        </div>
+                    </div>
+                </article>
+                
+                <article class="wave-card card lift p-8" data-wave="M6" role="listitem">
+                    <div class="flex items-start gap-6">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); display: flex; align-items: center; justify-content: center;">
+                            <span class="mono" style="font-size: 18px; font-weight: 700; color: var(--green);">M6</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold mb-1">MONTH 6 — FIRST REVENUE (THE REAL GATE)</h4>
+                            <p class="body">6 ventures live. GTM motion working. <strong class="highlight-red">If missed: pause Wave 2/3 spend.</strong></p>
+                        </div>
+                    </div>
+                </article>
+                
+                <article class="wave-card card lift p-8" data-wave="M12" role="listitem">
+                    <div class="flex items-start gap-6">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(232,212,42,0.15); border: 1px solid rgba(232,212,42,0.3); display: flex; align-items: center; justify-content: center;">
+                            <span class="mono" style="font-size: 18px; font-weight: 700; color: var(--accent);">M12</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold mb-1">MONTH 12 — PORTFOLIO FLYWHEEL</h4>
+                            <p class="body">11 ventures live. $100K+ MRR. Compound data moats forming.</p>
+                        </div>
+                    </div>
+                </article>
+                
+                <article class="wave-card card lift p-8" data-wave="M18" role="listitem">
+                    <div class="flex items-start gap-6">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); display: flex; align-items: center; justify-content: center;">
+                            <span class="mono" style="font-size: 18px; font-weight: 700; color: #a855f7;">M18</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold mb-1">MONTH 18 — SERIES A / SCALE READINESS</h4>
+                            <p class="body">$500K MRR, 130% NRR. Spin-out evaluation for winners.</p>
+                        </div>
+                    </div>
+                </article>
+            </ul>
+            
+            <div class="success-box mt-12" role="region" aria-label="Investor rights">
+                <h3 class="caption mb-3 highlight-green">INVESTOR RIGHTS</h3>
+                <dl class="grid-2 caption" role="list">
+                    <dt role="listitem">PRO-RATA</dt><dd>ALL FUTURE ROUNDS</dd>
+                    <dt role="listitem">INFORMATION RIGHTS</dt><dd>MONTHLY DASHBOARD (AUTO-GEN BY DONDOG)</dd>
+                    <dt role="listitem">ADVISORY BOARD SEAT</dt><dd>1 PER $500K+</dd>
+                    <dt role="listitem">FIRST LOOK</dt><dd>SPIN-OUT OPPORTUNITIES</dd>
+                </dl>
+            </div>
+        </div>
+        
+        <footer class="section-footer">
+            <span>DONJON SYSTEMS · VIBE NATIVE V3</span>
+            <span class="live-indicator" id="footerStatus9">SYSTEMS NOMINAL</span>
+            <span class="mono" id="footerTime9">00:00:00 UTC</span>
+        </footer>
+        </section>
+        
+        <!-- 10 · WHY NOW / WHY DONJON -->
+        <section class="section" id="section-10" data-section="10">
+            <span class="section-tag">10 · WHY NOW / WHY DONJON</span>
+            <h2 class="mb-6">THE CONVERGENCE</h2>
+            <p class="lead mb-12 max-w-2xl">The window is narrow. First-mover in Agent-Native Venture Studio category.</p>
+            
+            <div class="grid-2 mb-12">
+                <article class="card lift h-full" role="region" aria-label="Convergence">
+                    <h3 class="caption mb-6 highlight-blue">THE CONVERGENCE</h3>
+                    <dl class="space-y-6" role="list">
+                        <div class="flex items-start gap-4" role="listitem">
+                            <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); display: flex; align-items: center; justify-content: center;">
+                                <span class="mono" style="font-size: 14px; font-weight: 700; color: #3b82f6;">1</span>
+                            </div>
+                            <div><strong>MODEL INTELLIGENCE CROSSED THE THRESHOLD</strong> — Agents execute complex, multi-step knowledge work end-to-end (we do it daily)</div>
+                        </div>
+                        <div class="flex items-start gap-4" role="listitem">
+                            <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); display: flex; align-items: center; justify-content: center;">
+                                <span class="mono" style="font-size: 14px; font-weight: 700; color: #3b82f6;">2</span>
+                            </div>
+                            <div><strong>ORCHESTRATION INFRASTRUCTURE EXISTS</strong> — Doer solves multi-agent coordination</div>
+                        </div>
+                        <div class="flex items-start gap-4" role="listitem">
+                            <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); display: flex; align-items: center; justify-content: center;">
+                                <span class="mono" style="font-size: 14px; font-weight: 700; color: #3b82f6;">3</span>
+                            </div>
+                            <div><strong>MEMORY PERSISTENCE SOLVED</strong> — Letta gives agents institutional memory across sessions</div>
+                        </div>
+                        <div class="flex items-start gap-4" role="listitem">
+                            <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); display: flex; align-items: center; justify-content: center;">
+                                <span class="mono" style="font-size: 14px; font-weight: 700; color: #3b82f6;">4</span>
+                            </div>
+                            <div><strong>MARKET ACCEPTING AI DELIVERY</strong> — Intercom Fin, Sierra, Harvey proved buyers pay for agent outcomes</div>
+                        </div>
+                        <div class="flex items-start gap-4" role="listitem">
+                            <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); display: flex; align-items: center; justify-content: center;">
+                                <span class="mono" style="font-size: 14px; font-weight: 700; color: #3b82f6;">5</span>
+                            </div>
+                            <div><strong>COST CURVES COLLAPSING</strong> — 10x compute cost drop every 3 years; margins expand automatically</div>
+                        </div>
+                    </dl>
+                </article>
+                
+                <article class="card lift h-full" role="region" aria-label="The Window">
+                    <h3 class="caption mb-6 highlight-yellow">THE WINDOW</h3>
+                    <blockquote class="quote-block" style="font-size: 16px;">
+                        <strong>FIRST-MOVER IN "AGENT-NATIVE VENTURE STUDIO" CATEGORY.</strong><br><br>
+                        No one else has: (a) working multi-agent hierarchy, (b) persistent memory, (c) orchestration platform, (d) proven build cycle, (e) 11-venture pipeline.<br><br>
+                        By the time competitors copy the org chart, we'll have 11 deployed products and compounding data moats — <em>if we execute and the market buys.</em>
+                    </blockquote>
+                    <div class="card card-bordered border-l-purple bg-purple-500/5 border-purple-500/20 mt-6 p-6">
+                        <h3 class="caption mb-3 highlight-purple">THE VISION (DIRECTIONAL, NOT PROMISE)</h3>
+                        <blockquote class="quote-block" style="font-size: 15px;">
+                            "Donjon becomes a portfolio of agent-native businesses with compounding intelligence.<br><br>
+                            — Permanent capital vehicle<br>
+                            — Compound intelligences across portfolio<br>
+                            — Spin out winners, double down on compounders<br><br>
+                            <strong>TARGET: $100M+ ARR BY YEAR 5 WITH <20 HUMANS</strong> — a <em>target</em>, not a forecast"
+                        </blockquote>
+                    </div>
+                </article>
+            </div>
+        </div>
+        
+        <footer class="section-footer">
+            <span>DONJON SYSTEMS · VIBE NATIVE V3</span>
+            <span class="live-indicator" id="footerStatus10">SYSTEMS NOMINAL</span>
+            <span class="mono" id="footerTime10">00:00:00 UTC</span>
+        </footer>
+        </section>
+        
+        <!-- 11 · CLOSING -->
+        <section class="section" id="section-11" data-section="11">
+            <div class="max-w-3xl mx-auto w-full text-center">
+                <h2 class="mb-8">WE HAVE BUILT THE MACHINE.</h2>
+                
+                <div class="grid-3 mb-12" role="list" aria-label="Summary cards">
+                    <article class="card lift text-center" role="listitem">
+                        <div style="width: 64px; height: 64px; border-radius: 16px; background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <h3 class="font-semibold mb-2">WORKING MULTI-AGENT SYSTEM</h3>
+                        <p class="body">DonDog → Chef → Alfie → 24 Gremlins. Persistent memory via Letta. 6-hour heartbeat daemon. Running code.</p>
+                    </article>
+                    
+                    <article class="card lift text-center" role="listitem">
+                        <div style="width: 64px; height: 64px; border-radius: 16px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <h3 class="font-semibold mb-2">ONE COMPLETE PRODUCT</h3>
+                        <p class="body">Patriot Fund Recovery. 6 weeks. ~4 founder hours. 147 issues. $1,200 compute. 31K lines. Pre-revenue. 3 VSO pilots.</p>
+                    </article>
+                    
+                    <article class="card lift text-center" role="listitem">
+                        <div style="width: 64px; height: 64px; border-radius: 16px; background: rgba(232,212,42,0.15); border: 1px solid rgba(232,212,42,0.3); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <h3 class="font-semibold mb-2">10 MORE DESIGNED</h3>
+                        <p class="body">Same crew. Same platform. Same workflow. $2.46M capital for 12-month deployment. Kill criteria prevent zombies.</p>
+                    </article>
+                </ul>
+                
+                <div class="mt-16 p-10 bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border border-yellow-500/30 rounded-2xl">
+                    <h2 class="mb-6">WE HAVE NOT YET SOLD ANYTHING.</h2>
+                    <p class="body text-lg mb-8 max-w-xl mx-auto">That's what the capital is for — to prove the market wants what we can build.</p>
+                    <div class="mt-8 flex items-center justify-center gap-4">
+                        <a href="mailto:clay@donjon.agency" class="btn btn-primary">clay@donjon.agency</a>
+                        <span class="caption">|</span>
+                        <span class="caption">+1 (918) 555-0199</span>
+                    </div>
+                </div>
+                
+                <p class="caption mt-10">CLAYTON CHRISTIAN — FOUNDER & CEO, DONJON INTELLIGENCE SYSTEMS</p>
+                <p class="caption">TULSA, OKLAHOMA</p>
+            </div>
+            
+            <footer class="section-footer">
+                <span>DONJON SYSTEMS · VIBE NATIVE V3</span>
+                <span class="live-indicator" id="footerStatus11">SYSTEMS NOMINAL</span>
+                <span class="mono" id="footerTime11">00:00:00 UTC</span>
+            </footer>
+        </section>
+    </main>
+    
+    <nav class="nav-dots" id="navDots" aria-label="Section navigation"></nav>
+    
+    <script>
+        // Charts
+        const revenueCtx = document.getElementById('revenueChart')?.getContext('2d');
+        const trajectoryCtx = document.getElementById('trajectoryChart')?.getContext('2d');
+        
+        if (revenueCtx) {
+            new Chart(revenueCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Patriot', 'Regulatory', 'M&A', 'SEO', 'GovCon', 'Legacy', 'Compliance', 'Grant', 'Insurance', 'Clinical', 'Cert'],
+                    datasets: [{
+                        label: 'Modeled Monthly Revenue ($K)',
+                        data: [25, 45, 60, 35, 40, 80, 25, 30, 35, 50, 55],
+                        backgroundColor: [
+                            'rgba(232, 212, 42, 0.8)',
+                            'rgba(59, 130, 246, 0.6)',
+                            'rgba(59, 130, 246, 0.6)',
+                            'rgba(59, 130, 246, 0.6)',
+                            'rgba(59, 130, 246, 0.6)',
+                            'rgba(59, 130, 246, 0.6)',
+                            'rgba(59, 130, 246, 0.6)',
+                            'rgba(59, 130, 246, 0.6)',
+                            'rgba(59, 130, 246, 0.6)',
+                            'rgba(59, 130, 246, 0.6)',
+                            'rgba(59, 130, 246, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(232, 212, 42, 1)',
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(59, 130, 246, 1)'
+                        ],
+                        borderWidth: 1,
+                        borderRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#0f0f0f',
+                            titleColor: '#fafafa',
+                            bodyColor: '#e4e4e7',
+                            borderColor: '#1a1a1a',
+                            borderWidth: 1,
+                            padding: 12,
+                            callbacks: {
+                                label: ctx => '$' + ctx.raw + 'K / month'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#1a1a1a' },
+                            ticks: { color: '#555555', callback: v => '$' + v + 'K' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#555555', maxRotation: 45, minRotation: 45 }
+                        }
+                    }
+                }
+            });
+        }
+        
+        if (trajectoryCtx) {
+            new Chart(trajectoryCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Year 1', 'Year 2', 'Year 3'],
+                    datasets: [
+                        {
+                            label: 'Base Case ARR ($M)',
+                            data: [5.8, 18, 52],
+                            borderColor: '#e8d42a',
+                            backgroundColor: 'rgba(232, 212, 42, 0.1)',
+                            tension: 0.3,
+                            fill: true,
+                            pointBackgroundColor: '#e8d42a',
+                            pointBorderColor: '#fafafa',
+                            pointBorderWidth: 2,
+                            pointRadius: 6
+                        },
+                        {
+                            label: 'Upside ARR ($M)',
+                            data: [13, 42, 110],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.3,
+                            fill: true,
+                            pointBackgroundColor: '#3b82f6',
+                            pointBorderColor: '#fafafa',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            borderDash: [5, 5]
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: '#888888', usePointStyle: true, padding: 20, font: { family: 'JetBrains Mono' } }
+                        },
+                        tooltip: {
+                            backgroundColor: '#0f0f0f',
+                            titleColor: '#fafafa',
+                            bodyColor: '#e4e4e7',
+                            borderColor: '#1a1a1a',
+                            borderWidth: 1,
+                            padding: 12,
+                            callbacks: {
+                                label: ctx => ctx.dataset.label + ': $' + ctx.raw + 'M'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#1a1a1a' },
+                            ticks: { color: '#555555', callback: v => '$' + v + 'M' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#555555' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Live clock
+        function updateClocks() {
+            const now = new Date();
+            const timeStr = now.toISOString().substr(11, 8) + ' UTC';
+            document.querySelectorAll('[id^="footerTime"], #hudTime').forEach(el => {
+                if (el) el.textContent = timeStr;
+            });
+        }
+        setInterval(updateClocks, 1000);
+        updateClocks();
+        
+        // Progress bar
+        const progressBar = document.getElementById('progressBar');
+        const sections = document.querySelectorAll('.section');
+        const navDotsContainer = document.getElementById('navDots');
+        
+        // Create nav dots
+        sections.forEach((section, index) => {
+            const dot = document.createElement('button');
+            dot.className = 'nav-dot' + (index === 0 ? ' active' : '');
+            dot.setAttribute('aria-label', 'Go to section ' + (index + 1));
+            dot.addEventListener('click', () => {
+                section.scrollIntoView({ behavior: 'smooth' });
+            });
+            navDotsContainer.appendChild(dot);
+        });
+        
+        const navDots = document.querySelectorAll('.nav-dot');
+        
+        window.addEventListener('scroll', () => {
+            const scrollTop = window.scrollY;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const progress = (scrollTop / docHeight) * 100;
+            progressBar.style.transform = 'scaleX(' + (progress / 100) + ')';
+            
+            let currentSection = 0;
+            sections.forEach((section, index) => {
+                const rect = section.getBoundingClientRect();
+                if (rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2) {
+                    currentSection = index;
+                }
+            });
+            
+            navDots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentSection);
+            });
+            
+            // Update HUD nav
+            const hudLinks = document.querySelectorAll('.hud-nav a');
+            hudLinks.forEach((link, index) => {
+                link.classList.toggle('active', index === currentSection);
+            });
+        }, { passive: true });
+        
+        // Scroll reveal
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+        
+        document.querySelectorAll('.lift, .card, .wave-card, .wave-card').forEach(el => {
+            el.classList.add('reveal');
+            observer.observe(el);
+        });
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            
+            const sections = document.querySelectorAll('.section');
+            let currentIndex = 0;
+            sections.forEach((s, i) => {
+                const rect = s.getBoundingClientRect();
+                if (rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2) {
+                    currentIndex = i;
+                }
+            });
+            
+            if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+                e.preventDefault();
+                if (currentIndex < sections.length - 1) {
+                    sections[currentIndex + 1].scrollIntoView({ behavior: 'smooth' });
+                }
+            } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+                e.preventDefault();
+                if (currentIndex > 0) {
+                    sections[currentIndex - 1].scrollIntoView({ behavior: 'smooth' });
+                }
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                sections[0].scrollIntoView({ behavior: 'smooth' });
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                sections[sections.length - 1].scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+        
+        // Smooth scroll for HUD links
+        document.querySelectorAll('.hud-nav a[href^="#"]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = document.querySelector(link.getAttribute('href'));
+                if (target) target.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+        
+        // Reduce motion
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            document.documentElement.style.setProperty('--animation-duration', '0.01ms');
+        }
+    </script>
+</body>
+</html>
